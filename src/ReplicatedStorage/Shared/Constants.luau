@@ -38,7 +38,7 @@ Constants.UPGRADE_DEFS = {
 		id = "OvenSpeed",
 		displayName = "Oven Speed",
 		description = "Bake faster",
-		baseCost = 75,
+		baseCost = 50,
 		costMult = 1.6,
 	},
 	Storage = {
@@ -51,7 +51,7 @@ Constants.UPGRADE_DEFS = {
 	Luck = {
 		id = "Luck",
 		displayName = "Lucky Whisk",
-		description = "Better recipe rolls / loot",
+		description = "Better hub gather Uncommon weight",
 		baseCost = 100,
 		costMult = 1.7,
 	},
@@ -71,5 +71,34 @@ Constants.SECURITY_BLOCK_CHANCE_PER_LEVEL = 0.08
 Constants.OVEN_SPEED_REDUCTION_PER_LEVEL = 0.1
 
 Constants.STORAGE_SLOTS_PER_LEVEL = 2
+
+-- Hub gather luck weights (LiveOps): Uncommon starts 0.20, +0.05/Luck, cap 0.45
+Constants.HUB_GATHER_BASE_UNCOMMON_WEIGHT = 0.20
+Constants.HUB_GATHER_UNCOMMON_PER_LUCK_LEVEL = 0.05
+Constants.HUB_GATHER_UNCOMMON_WEIGHT_CAP = 0.45
+Constants.HUB_GATHER_UNCOMMON_POOL = { "SugarDust" }
+
+-- Marketplace gamepass IDs — placeholders (0); replace before publish
+Constants.GAMEPASS = {
+	FasterOvens = 0, -- placeholder Marketplace ID
+	ExtraShelves = 0,
+	LuckyWhisk = 0,
+	IronLock = 0,
+}
+
+-- Each owned pass = +1 effective level on matching axis (stacks with cash upgrade)
+Constants.GAMEPASS_BONUS = {
+	FasterOvensOvenLevels = 1,
+	ExtraShelvesStorageLevels = 1,
+	LuckyWhiskLuckLevels = 1,
+	IronLockSecurityLevels = 1,
+}
+
+-- Studio QA: when true AND RunService:IsStudio(), GamePassService.Has returns true for all keys
+Constants.GAMEPASS_STUDIO_FORCE_ALL = false
+
+Constants.DATASTORE_SCHEMA_VERSION = 1
+Constants.DATASTORE_AUTOSAVE_SEC = 60
+Constants.DATASTORE_MAX_RETRIES = 3
 
 return Constants

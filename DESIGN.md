@@ -25,7 +25,8 @@ Steal rare recipes and ingredients, bake them into cash and flex, upgrade your k
 - Steal from another player's display (8s cooldown, rate limit, proximity)
 - 4 upgrades: Oven Speed, Storage, Luck, Security (cash costs)
 - HUD: cash, inventory (Bake/Sell/Display), bake queue, steal prompt, upgrade shop
-- DataStore stub for cash + inventory + upgrades
+- DataStore persistence for cash + inventory + upgrades + display + owned recipes (schema v1)
+- Luck affects hub gather Uncommon weight (cash Luck + Lucky Whisk)
 
 ### Out (later)
 - Trading economy, trading plaza
@@ -33,7 +34,7 @@ Steal rare recipes and ingredients, bake them into cash and flex, upgrade your k
 - Full tycoon droppers
 - Complex combat; keep steal as prompt + cooldown
 - UGC clothing
-- Luck affecting world drop tables (hook reserved on upgrade)
+- Trading cosmetics beyond listed gamepasses
 
 ## Plots & map
 - One hub plaza + ring of 8 bakery plots (`Constants.PLOT_COUNT`)
@@ -45,8 +46,8 @@ Steal rare recipes and ingredients, bake them into cash and flex, upgrade your k
 ## Catalog rarities (MVP)
 | Tier | Examples | Bake time (base) | Sell (baked) |
 |------|----------|------------------|--------------|
-| Common | Flour, Crusty Roll | ~5s | ~20 |
-| Uncommon | Sugar Dust, Butter Cookie | ~8s | ~45 |
+| Common | Flour, Crusty Roll | ~5s | ~25 |
+| Uncommon | Sugar Dust, Butter Cookie | ~8s | ~50 |
 | Rare | Cocoa Nibs, Sugar Bun | ~12s | ~80 |
 | Epic | Moon Honey, Cocoa Loaf | ~25s | ~220 |
 | Legendary | Star Yeast, Moon Cake | ~45s | ~550 |
@@ -56,11 +57,13 @@ Steal rare recipes and ingredients, bake them into cash and flex, upgrade your k
 - Starter inventory: Flour×5, Butter×3, Crusty Roll + Butter Cookie recipes
 - Steal cooldown: 8s personal; rate limit 3 requests / 2s
 - Steal range: 12 studs to display case
-- Security: ~8% block chance per level (cap 50%)
-- Oven speed: −10% bake time per level (floor 50% time)
+- Security: ~8% block chance per level (cap 50%); Iron Lock pass = +1 effective Security
+- Oven speed: −10% bake time per level (floor 50% time); Faster Ovens pass = +1 effective OvenSpeed
+- OvenSpeed upgrade baseCost: 50; Storage 50; Luck 100; Security 120
+- Hub gather luck: base Uncommon weight 0.20, +0.05 per effective Luck level, cap 0.45 (Common = remainder). Lucky Whisk pass = +1 effective Luck. Common stalls can roll `HUB_GATHER_UNCOMMON_POOL` (SugarDust); Uncommon stalls still grant their node item.
 
 ## Monetization
-- Gamepasses: Faster Ovens, Extra Shelves, Lucky Whisk, Iron Lock
+- Gamepasses: Faster Ovens, Extra Shelves, Lucky Whisk, Iron Lock (each +1 effective level on matching axis; placeholder IDs in `Constants.GAMEPASS`)
 - Cosmetics: oven skins, apron, display neon, trail on successful legendary bake
 - Dev products: cash packs (light), skip bake once
 

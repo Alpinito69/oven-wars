@@ -21,6 +21,7 @@ function EconomyService.AddCash(userId: number, amount: number): number
 	assert(data, "No player data")
 	assert(amount >= 0, "AddCash amount must be >= 0")
 	data.cash += amount
+	DataStoreStub.MarkDirty(userId)
 	local player = game.Players:GetPlayerByUserId(userId)
 	if player then
 		Remotes.Get("CashUpdated"):FireClient(player, data.cash)
@@ -34,6 +35,7 @@ function EconomyService.TrySpend(userId: number, amount: number): boolean
 		return false
 	end
 	data.cash -= amount
+	DataStoreStub.MarkDirty(userId)
 	local player = game.Players:GetPlayerByUserId(userId)
 	if player then
 		Remotes.Get("CashUpdated"):FireClient(player, data.cash)

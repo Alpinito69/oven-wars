@@ -117,7 +117,7 @@ local Catalog: { [string]: CatalogItem } = {
 		name = "Crusty Roll",
 		kind = "Baked",
 		rarity = "Common",
-		sellPrice = 20,
+		sellPrice = 25,
 		description = "Warm and crusty.",
 	},
 	ButterCookie = {
@@ -125,7 +125,7 @@ local Catalog: { [string]: CatalogItem } = {
 		name = "Butter Cookie",
 		kind = "Baked",
 		rarity = "Uncommon",
-		sellPrice = 45,
+		sellPrice = 50,
 		description = "Golden brown perfection.",
 	},
 	SugarBun = {

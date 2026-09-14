@@ -91,7 +91,7 @@ oven-wars/
     │       ├── PlotService.luau
     │       ├── LightingService.luau
     │       ├── VFXService.luau
-    │       ├── Bake / Steal / Economy / Upgrade / Inventory / DataStore…
+    │       ├── Bake / Steal / Economy / Upgrade / Inventory / Gather / GamePass / DataStore…
     └── StarterPlayer/StarterPlayerScripts/
         ├── ClientRemotes.client.luau
         ├── HUD.client.luau
@@ -99,11 +99,41 @@ oven-wars/
         └── UpgradeShop.client.luau
 ```
 
+
+## Persistence & API Services
+
+Player data (`cash`, `inventory`, `upgrades`, `displayItemId`, `ownedRecipes`) saves via DataStore (`DataStoreStub`):
+
+- Load on join (schema `schemaVersion = 1`; missing fields merge from defaults)
+- Save on leave (`PlayerRemoving`) and `BindToClose`
+- Autosave ~every 60s for online players
+- GetAsync / SetAsync retry with exponential backoff
+- SetAsync is last-write-wins (no session versioning yet). If GetAsync fails after retries, the session is memory-only and will **not** SetAsync (avoids wiping real progress).
+
+**Studio:** Game Settings → Security → **Enable Studio Access to API Services** for live DataStore. With API Services off (or GetDataStore failure), an in-memory fallback still lets you playtest.
+
+**Published place:** enable DataStore for the experience in Creator Dashboard / game settings before relying on persistence in production.
+
+## Gamepasses
+
+Placeholder Marketplace IDs live in `Constants.GAMEPASS` (all `0` until you replace them):
+
+| Key | Effect (stacks with cash upgrade) |
+|-----|-----------------------------------|
+| FasterOvens | +1 effective OvenSpeed |
+| ExtraShelves | +1 effective Storage (+`STORAGE_SLOTS_PER_LEVEL` slots) |
+| LuckyWhisk | +1 effective Luck for hub gather Uncommon weight |
+| IronLock | +1 effective Security |
+
+IDs `<= 0` skip ownership checks (treated as not owned). Replace IDs before publish.
+
+**Studio QA:** set `Constants.GAMEPASS_STUDIO_FORCE_ALL = true` (and Play in Studio) so `GamePassService.Has` returns true for all keys. Default `false`. Or temporarily set one `Constants.GAMEPASS.*` to a test pass ID you own.
+
 ## Design notes
 
 - **Server-authoritative** cash, inventory, bake timers, steals, upgrades
 - World is **Parts composition** from `WorldBuilder` / `PlotService` (replaceable with Studio meshes)
-- DataStore is a **stub** with memory fallback for Studio offline
+- DataStore persists cash / inventory / upgrades / display / recipes (memory fallback when API Services off)
 - See `DESIGN.md` for economy, monetization, and MVP scope
 
 ## Assumptions
