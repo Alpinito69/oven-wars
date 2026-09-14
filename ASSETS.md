@@ -43,7 +43,51 @@ Scripts look up by **name / attribute**. When replacing meshes:
 - `Spawn` marker part
 - Hub gather hosts: `IsGatherNode` + `GatherItemId`
 
-### Verified IDs (fill after review)
+#
+## Sprint 1 status (2026-09-14) — World Artist
+
+- Synced to latest `main` (gather proximity + plot interact range merges).
+- **Blocked on this machine:** Roblox Studio is not available on the World Artist Linux VM. No meshes were inserted in-place.
+- **Prep done:** `STUDIO_IMPORT_CHECKLIST.md` + CC0 Tiny Treats pack links below. Creator Store stall/cake IDs remain **PENDING** Free/license re-check in Studio.
+
+### Tiny Treats CC0 (preferred for Oven / DisplayCase / Counter / cake)
+
+| Pack | Use for | Get it |
+|------|---------|--------|
+| Charming Kitchen | `stove.fbx` → Oven; countertops → Counter | https://github.com/TinyTreats-Game-Assets/Tiny-Treats-Charming-Kitchen-1.0 |
+| Baked Goods | `cake_birthday.fbx` / `cake_chocolate.fbx` → fountain cake | https://github.com/TinyTreats-Game-Assets/Tiny-Treats-Baked-Goods-1.0 |
+| Bakery Interior | display / interior polish | https://tinytreats.itch.io/bakery-interior (CC0) |
+
+### Pending Studio verification (do **not** treat as Verified yet)
+
+| Purpose | Candidate | Source | Status |
+|---------|-----------|--------|--------|
+| Oven mesh | Charming Kitchen `stove.fbx` | Tiny Treats GitHub CC0 | PENDING Studio import |
+| Counter | Charming Kitchen `countertop_*.fbx` | Tiny Treats GitHub CC0 | PENDING Studio import |
+| DisplayCase | Bakery Interior glass/cabinet | Tiny Treats itch CC0 | PENDING download + import |
+| Fountain cake | `cake_birthday.fbx` (or Creator Store cakes below) | Tiny Treats / Creator Store | PENDING |
+| Hub stall | Market Stall `5626984031` | Creator Store — re-verify Free | PENDING |
+| Hub stall | Beverage Market Stall `17641160` | Creator Store — re-verify Free | PENDING |
+| Hub stall alt | Shop Stand `128117050019864` | Creator Store — re-verify Free | PENDING |
+| Fountain cake alt | Birthday Cake `570557430` | Creator Store — re-verify Free | PENDING |
+| Fountain cake alt | Baking Cake `1842724735` | Creator Store — re-verify Free | PENDING |
+| Fountain cake alt | Chocolate Birthday Cake `5470704206` | Creator Store — re-verify Free | PENDING |
+
+### Exact Studio steps (Windows / Mac)
+
+1. `aftman install && rojo serve` → Rojo plugin Sync into Studio
+2. Download Tiny Treats Charming Kitchen + Baked Goods (GitHub) and Bakery Interior (itch)
+3. **3D Importer**: `stove.fbx` → re-parent under each plot `Oven`; keep `IsOven`, `BakeLight`, `SteamAttachment`
+4. Import display mesh → `DisplayCase` + `IsDisplayCase` + `StealPrompt` + `StealAttachment`
+5. Import countertop → `Counter` + `SellAttachment`
+6. Insert Market/Beverage stall models on hub gather hosts; keep `IsGatherNode` + `GatherItemId`; **strip ALL scripts**
+7. Place cake on fountain pedestal (cosmetic only)
+8. Playtest: gather → bake steam → claim → sell coins → steal poof
+9. Move confirmed rows into **Verified IDs** below; open follow-up PR
+
+---
+
+## Verified IDs (fill after review)
 
 | Purpose | Asset ID | Source / license note |
 |---------|----------|------------------------|
