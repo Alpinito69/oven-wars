@@ -14,7 +14,7 @@ Constants.STEAL_RATE_LIMIT_WINDOW_SEC = 2
 Constants.STEAL_RATE_LIMIT_MAX = 3
 
 Constants.GATHER_RANGE_STUDS = 12
-Constants.PLOT_INTERACT_RANGE_STUDS = 24
+Constants.PLOT_INTERACT_RANGE_STUDS = 28 -- spawn pad ~25 studs from oven; leave HRP slack
 Constants.GATHER_COOLDOWN_SEC = 2
 
 Constants.PLOT_COUNT = 8
