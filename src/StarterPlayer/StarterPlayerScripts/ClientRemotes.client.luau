@@ -73,8 +73,9 @@ function OvenWarsClient.RequestDisplay(itemId: string?)
 	Remotes.Get("RequestDisplay"):FireServer(itemId or "")
 end
 
-function OvenWarsClient.RequestGather(itemId: string)
-	Remotes.Get("RequestGather"):FireServer(itemId)
+-- Primary gather path is ProximityPrompt on hub stalls; remote expects node id (e.g. "FlourStall").
+function OvenWarsClient.RequestGather(nodeId: string)
+	Remotes.Get("RequestGather"):FireServer(nodeId)
 end
 
 -- Expose for sibling LocalScripts via shared ModuleScript pattern:

@@ -145,6 +145,7 @@ local function buildStall(
 	if gatherItemId then
 		crate:SetAttribute("GatherItemId", gatherItemId)
 		crate:SetAttribute("IsGatherNode", true)
+		crate:SetAttribute("GatherNodeId", name) -- stall model name e.g. FlourStall
 		local prompt = Instance.new("ProximityPrompt")
 		prompt.ObjectText = signText
 		prompt.ActionText = "Gather"
