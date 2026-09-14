@@ -57,7 +57,7 @@ Code spawns a readable **cozy bakery plaza** (no greybox-only map):
 - **VFX** (`VFXService`): bake steam, claim sparkles, sell coins, steal poof + highlight, legendary celebration — server-spawned for fairness
 - **UI**: warmer rounded panels, emoji glyphs, themed steal prompt, upgrade cards with level pips
 
-**Mesh / Toolbox assets** are imported in Studio; Luau provides layout + VFX skeleton. See `ASSETS.md` for naming contracts and a Studio-imports stub (parent merges research there). Do not commit unverified asset IDs.
+**Mesh / Toolbox assets** are imported in Studio; Luau provides layout + VFX skeleton. See [`ASSETS.md`](ASSETS.md) for naming contracts and [`STUDIO_IMPORT_CHECKLIST.md`](STUDIO_IMPORT_CHECKLIST.md) for the Sprint 1 import order (Oven → DisplayCase → Counter → cake → stalls). Do not commit unverified asset IDs.
 
 ### How to see the polish in Studio
 
@@ -75,6 +75,7 @@ oven-wars/
 ├── default.project.json
 ├── DESIGN.md
 ├── ASSETS.md                # Studio imports stub + naming contract
+├── STUDIO_IMPORT_CHECKLIST.md  # Sprint 1 mesh import order + safety
 ├── README.md
 └── src/
     ├── ReplicatedStorage/Shared/
