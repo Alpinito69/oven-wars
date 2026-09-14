@@ -52,3 +52,57 @@ Scripts look up by **name / attribute**. When replacing meshes:
 ## Sky note
 
 `LightingService` sets ClockTime, Atmosphere, Bloom, ColorCorrection, DepthOfField, SunRays. A custom **Sky** instance is best added in Studio (Toolbox) — Rojo code avoids unverified skybox texture IDs.
+
+---
+
+## Curated free / low-risk imports (research 2026-09-14)
+
+Prefer **Creator Store / verified creators**. Re-check Free + license in Studio before publishing. **Never** insert random Toolbox models that ship unknown scripts — strip scripts or use mesh-only.
+
+### Top bakery props (free / CC0)
+
+| Asset | Notes | How to get |
+|-------|--------|------------|
+| Tiny Treats — Bakery Interior / Baked Goods / Charming Kitchen / Bakery Building | CC0 packs, great mesh swaps | Studio **3D Importer** / Tiny Treats CC0 |
+| UpDraft free sampler | Free sampler props | Creator / UpDraft free sampler |
+| Birthday Cake | Creator Store prop | Asset `570557430` — re-verify Free |
+| Baking Cake | Creator Store | Asset `1842724735` |
+| Chocolate Birthday Cake | Creator Store | Asset `5470704206` |
+| Market Stall | Plaza / hub stalls | Asset `5626984031` |
+| Beverage Market Stall | Hub variety | Asset `17641160` |
+| Shop Stand | Stall alternative | Asset `128117050019864` |
+
+### VFX
+
+| Asset | Notes |
+|-------|--------|
+| Effect Designer Suite (plugin) | Free plugin `109890065116916` (iGottic) — design particles in Studio |
+| DogmathPan Free VFX Pack | `8621531267` — audit before use |
+| **Built-in (already in game)** | Steam / sparkle / coin / smoke / legendary bursts via `VFXService` |
+
+### UI & audio
+
+| Need | Guidance |
+|------|----------|
+| UI kit | Zxgly free cartoony `.rbxm` on itch — **audit scripts**; don’t redistribute |
+| SFX | Toolbox **Audio** search: `oven ding`, `whoosh`, `cash register`, `bakery` — no hard-coded IDs in repo |
+
+### Toolbox search terms
+
+`bakery counter`, `display case glass`, `oven stove`, `market stall awning`, `cake pedestal`, `lamp post`, `hedge`, `cobblestone path`, `particle steam`, `confetti burst`
+
+### Avoid
+
+- Paid KW Studio kitchen kits (unless you buy them)
+- Scripted “Cooking System” free models (backdoor / require risks)
+- Random Toolbox kitchens with embedded scripts
+- Blog dump lists of Sound IDs (often invalid or stolen)
+- Anything that asks you to `require(assetId)` from an unknown author
+
+### Suggested Studio workflow
+
+1. `rojo serve` → sync code world first (already cozy)
+2. Insert free meshes → re-parent under existing `Oven` / `DisplayCase` / stall names (see naming contract above)
+3. Delete or disable any scripts that came with free models
+4. Playtest gather → bake steam → sell coins → steal poof
+5. Record final asset IDs in the “Verified IDs” table above
