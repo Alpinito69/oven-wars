@@ -37,8 +37,10 @@ Steal rare recipes and ingredients, bake them into cash and flex, upgrade your k
 
 ## Plots & map
 - One hub plaza + ring of 8 bakery plots (`Constants.PLOT_COUNT`)
-- Each plot: oven, counter/display case, upgrade board, spawn pad
-- Placeholder Parts spawned in `PlotService` (no external map asset required)
+- Each plot: floor, half-walls, roof/awning, oven (+ bake light), glass display case, counter, upgrade board, spawn, name sign; per-plot accent color
+- Hub: fountain pedestal, market stalls (gather), pathways + street lamps
+- Built by `WorldBuilder` / `PlotService` as Parts composition; optional Studio meshes via `ASSETS.md`
+- Atmosphere: `LightingService` warm golden-hour; VFX via `VFXService`
 
 ## Catalog rarities (MVP)
 | Tier | Examples | Bake time (base) | Sell (baked) |

@@ -12,6 +12,8 @@ local Catalog = require(game.ReplicatedStorage.Shared.Catalog)
 local InventoryService = require(script.Parent.InventoryService)
 local UpgradeService = require(script.Parent.UpgradeService)
 local DataStoreStub = require(script.Parent.DataStoreStub)
+local VFXService = require(script.Parent.VFXService)
+local PlotService = require(script.Parent.PlotService)
 
 local StealService = {}
 
@@ -69,7 +71,7 @@ function StealService.TrySteal(thief: Player, targetUserId: number): (boolean, s
 	local targetRoot = getCharacterRoot(target)
 	-- Prefer plot display part if available
 	local displayPart: BasePart? = nil
-	local plotsFolder = workspace:FindFirstChild("OvenWarsPlots")
+	local plotsFolder = workspace:FindFirstChild("Plots")
 	if plotsFolder then
 		for _, plot in plotsFolder:GetChildren() do
 			if plot:GetAttribute("OwnerUserId") == targetUserId then
@@ -128,15 +130,8 @@ function StealService.TrySteal(thief: Player, targetUserId: number): (boolean, s
 	Remotes.Get("StealResult"):FireClient(thief, true, "Stole " .. itemName .. "!")
 	Remotes.Get("Notify"):FireClient(target, thief.DisplayName .. " stole your " .. itemName .. "!")
 
-	-- Update visual attribute on plot
-	if plotsFolder then
-		for _, plot in plotsFolder:GetChildren() do
-			if plot:GetAttribute("OwnerUserId") == targetUserId then
-				plot:SetAttribute("DisplayItemId", "")
-				break
-			end
-		end
-	end
+	PlotService.UpdateDisplayVisual(targetUserId, nil)
+	VFXService.StealPoof(targetUserId)
 
 	return true, nil
 end

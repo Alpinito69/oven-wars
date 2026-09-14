@@ -11,6 +11,7 @@ local Catalog = require(game.ReplicatedStorage.Shared.Catalog)
 local Types = require(game.ReplicatedStorage.Shared.Types)
 local DataStoreStub = require(script.Parent.DataStoreStub)
 local InventoryService = require(script.Parent.InventoryService)
+local VFXService = require(script.Parent.VFXService)
 
 local BakeService = {}
 
@@ -98,6 +99,7 @@ function BakeService.StartBake(player: Player, recipeId: string): (boolean, stri
 	jobsByPlayer[userId] = jobs
 	table.insert(jobs, job)
 	syncQueue(player)
+	VFXService.StartBake(userId)
 	Remotes.Get("Notify"):FireClient(player, "Baking " .. (Catalog.Get(item.outputId) and Catalog.Get(item.outputId).name or item.outputId) .. "...")
 	return true, nil
 end
@@ -135,6 +137,7 @@ function BakeService.ClaimBake(player: Player, jobId: string): (boolean, string?
 	found.claimed = true
 	InventoryService.AddItem(userId, recipe.outputId, 1)
 	syncQueue(player)
+	VFXService.ClaimSparkle(userId, recipe.outputId)
 	Remotes.Get("Notify"):FireClient(player, "Claimed " .. (Catalog.Get(recipe.outputId).name or recipe.outputId) .. "!")
 	return true, nil
 end

@@ -1,6 +1,6 @@
 --!strict
 --[[
-	Oven Wars — client helpers for steal UX (highlights + optional remote steal).
+	Oven Wars — themed steal UX (highlight + prompt copy).
 	Primary steal path is server ProximityPrompt on DisplayCase.
 ]]
 
@@ -9,6 +9,7 @@ local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Constants = require(ReplicatedStorage.Shared.Constants)
+local Theme = require(ReplicatedStorage.Shared.Theme)
 
 local player = Players.LocalPlayer
 
@@ -18,7 +19,6 @@ repeat
 	OvenWarsClient = (_G :: any).OvenWarsClient
 until OvenWarsClient ~= nil
 
--- Soft highlight when near rival display cases
 local highlight: Highlight? = nil
 
 local function clearHighlight()
@@ -36,9 +36,11 @@ local function ensureHighlight(adornee: Instance)
 	local h = Instance.new("Highlight")
 	h.Name = "StealHighlight"
 	h.Adornee = adornee
-	h.FillColor = Color3.fromRGB(255, 80, 80)
-	h.OutlineColor = Color3.fromRGB(255, 200, 200)
-	h.FillTransparency = 0.7
+	h.FillColor = Color3.fromRGB(255, 90, 90)
+	h.OutlineColor = Theme.Blush
+	h.FillTransparency = 0.55
+	h.OutlineTransparency = 0
+	h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
 	h.Parent = adornee
 	highlight = h
 end
@@ -59,15 +61,19 @@ ProximityPromptService.PromptShown:Connect(function(prompt: ProximityPrompt, _in
 	if typeof(ownerId) == "number" and ownerId ~= 0 and ownerId ~= player.UserId then
 		ensureHighlight(display)
 		local displayId = plot:GetAttribute("DisplayItemId")
+		local bakery = plot:GetAttribute("BakeryName")
+		local bakeryLabel = if typeof(bakery) == "string" then bakery else "Rival bakery"
 		if typeof(displayId) == "string" and displayId ~= "" then
-			prompt.ActionText = "Steal"
-			prompt.ObjectText = "Rival display"
+			prompt.ActionText = "Steal 🍪"
+			prompt.ObjectText = "🍪 " .. bakeryLabel
+			prompt.KeyboardKeyCode = Enum.KeyCode.E
+			prompt.HoldDuration = 0.55
 		else
-			prompt.ActionText = "Empty"
-			prompt.ObjectText = "Rival display"
+			prompt.ActionText = "Empty case"
+			prompt.ObjectText = bakeryLabel
 		end
 	else
-		prompt.Enabled = ownerId ~= player.UserId -- hide on own case; own case uses HUD Display
+		prompt.Enabled = ownerId ~= player.UserId
 		if ownerId == player.UserId then
 			clearHighlight()
 		end
@@ -80,7 +86,6 @@ ProximityPromptService.PromptHidden:Connect(function(prompt: ProximityPrompt)
 	end
 end)
 
--- Fallback: if prompt trigger somehow needs client FireServer (backup path)
 ProximityPromptService.PromptTriggered:Connect(function(prompt: ProximityPrompt, triggeringPlayer: Player)
 	if triggeringPlayer ~= player then
 		return
@@ -88,9 +93,17 @@ ProximityPromptService.PromptTriggered:Connect(function(prompt: ProximityPrompt,
 	if prompt.Name ~= "StealPrompt" then
 		return
 	end
-	-- Server already handles StealPrompt.Triggered; this is a redundant safety net
-	-- only if Attribute says client-driven (not used in MVP). Kept for docs/playtest.
 	local _ = Constants.STEAL_COOLDOWN_SEC
+end)
+
+-- Soft toast on steal result
+local Remotes = require(ReplicatedStorage.Shared.Remotes)
+Remotes.Get("StealResult").OnClientEvent:Connect(function(success: boolean, message: string)
+	local toast = player:WaitForChild("PlayerGui"):FindFirstChild("OvenWarsToast")
+	if toast and toast:IsA("BindableEvent") then
+		local prefix = if success then "🍪 " else "🔒 "
+		toast:Fire(prefix .. message)
+	end
 end)
 
 print("[OvenWars] StealPrompt client ready")

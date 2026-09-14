@@ -1,12 +1,14 @@
 --!strict
 --[[
-	Oven Wars — upgrade shop UI stub (opens from own Upgrade Board prompt).
+	Oven Wars — card-style upgrade shop (Upgrade Board or U).
 ]]
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
 
 local Constants = require(ReplicatedStorage.Shared.Constants)
+local Theme = require(ReplicatedStorage.Shared.Theme)
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -25,65 +27,129 @@ local screen = Instance.new("ScreenGui")
 screen.Name = "OvenWarsUpgradeShop"
 screen.ResetOnSpawn = false
 screen.Enabled = false
+screen.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 screen.Parent = playerGui
 
+-- Dim backdrop
+local dim = Instance.new("Frame")
+dim.Name = "Dim"
+dim.Size = UDim2.fromScale(1, 1)
+dim.BackgroundColor3 = Color3.fromRGB(20, 12, 8)
+dim.BackgroundTransparency = 0.45
+dim.BorderSizePixel = 0
+dim.Parent = screen
+
 local panel = Instance.new("Frame")
-panel.Size = UDim2.fromOffset(340, 380)
+panel.Size = UDim2.fromOffset(380, 420)
 panel.Position = UDim2.fromScale(0.5, 0.5)
 panel.AnchorPoint = Vector2.new(0.5, 0.5)
-panel.BackgroundColor3 = Color3.fromRGB(40, 28, 18)
+panel.BackgroundColor3 = Theme.UI.Panel
 panel.Parent = screen
 
 local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 10)
+corner.CornerRadius = UDim.new(0, 16)
 corner.Parent = panel
 
+local stroke = Instance.new("UIStroke")
+stroke.Color = Theme.UI.Stroke
+stroke.Thickness = 2
+stroke.Transparency = 0.25
+stroke.Parent = panel
+
 local pad = Instance.new("UIPadding")
-pad.PaddingTop = UDim.new(0, 12)
-pad.PaddingBottom = UDim.new(0, 12)
-pad.PaddingLeft = UDim.new(0, 12)
-pad.PaddingRight = UDim.new(0, 12)
+pad.PaddingTop = UDim.new(0, 14)
+pad.PaddingBottom = UDim.new(0, 14)
+pad.PaddingLeft = UDim.new(0, 14)
+pad.PaddingRight = UDim.new(0, 14)
 pad.Parent = panel
 
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, -40, 0, 28)
+title.Size = UDim2.new(1, -44, 0, 30)
 title.BackgroundTransparency = 1
 title.Font = Enum.Font.GothamBold
-title.TextSize = 20
-title.TextColor3 = Color3.new(1, 1, 1)
+title.TextSize = 22
+title.TextColor3 = Theme.UI.Text
 title.TextXAlignment = Enum.TextXAlignment.Left
-title.Text = "Kitchen Upgrades"
+title.Text = "🛠️  Kitchen Upgrades"
 title.Parent = panel
 
+local subtitle = Instance.new("TextLabel")
+subtitle.Size = UDim2.new(1, -44, 0, 18)
+subtitle.Position = UDim2.fromOffset(0, 30)
+subtitle.BackgroundTransparency = 1
+subtitle.Font = Enum.Font.Gotham
+subtitle.TextSize = 12
+subtitle.TextColor3 = Theme.UI.TextMuted
+subtitle.TextXAlignment = Enum.TextXAlignment.Left
+subtitle.Text = "Spend bakery cash · levels shown on each card"
+subtitle.Parent = panel
+
 local closeBtn = Instance.new("TextButton")
-closeBtn.Size = UDim2.fromOffset(28, 28)
-closeBtn.Position = UDim2.new(1, -28, 0, 0)
-closeBtn.BackgroundColor3 = Color3.fromRGB(160, 60, 60)
-closeBtn.Text = "X"
+closeBtn.Size = UDim2.fromOffset(32, 32)
+closeBtn.Position = UDim2.new(1, -32, 0, 0)
+closeBtn.BackgroundColor3 = Theme.UI.Danger
+closeBtn.Text = "✕"
 closeBtn.Font = Enum.Font.GothamBold
+closeBtn.TextSize = 16
 closeBtn.TextColor3 = Color3.new(1, 1, 1)
 closeBtn.Parent = panel
 local cc = Instance.new("UICorner")
-cc.CornerRadius = UDim.new(0, 6)
+cc.CornerRadius = UDim.new(0, 8)
 cc.Parent = closeBtn
 closeBtn.MouseButton1Click:Connect(function()
 	screen.Enabled = false
 end)
+dim.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		screen.Enabled = false
+	end
+end)
 
 local list = Instance.new("ScrollingFrame")
-list.Size = UDim2.new(1, 0, 1, -40)
-list.Position = UDim2.fromOffset(0, 36)
+list.Size = UDim2.new(1, 0, 1, -56)
+list.Position = UDim2.fromOffset(0, 54)
 list.BackgroundTransparency = 1
-list.ScrollBarThickness = 4
+list.ScrollBarThickness = 5
+list.ScrollBarImageColor3 = Theme.UI.Accent
 list.CanvasSize = UDim2.fromOffset(0, 0)
+list.BorderSizePixel = 0
 list.Parent = panel
 
 local layout = Instance.new("UIListLayout")
-layout.Padding = UDim.new(0, 8)
+layout.Padding = UDim.new(0, 10)
 layout.Parent = list
+
+local UPGRADE_ICONS: { [string]: string } = {
+	OvenSpeed = "🔥",
+	Storage = "📦",
+	Luck = "🍀",
+	Security = "🔒",
+}
 
 local function costFor(def, level: number): number
 	return math.floor(def.baseCost * (def.costMult ^ level))
+end
+
+local function levelPips(parent: Frame, level: number, maxLevel: number)
+	local row = Instance.new("Frame")
+	row.Name = "Pips"
+	row.Size = UDim2.new(1, -110, 0, 10)
+	row.Position = UDim2.fromOffset(12, 52)
+	row.BackgroundTransparency = 1
+	row.Parent = parent
+	local lay = Instance.new("UIListLayout")
+	lay.FillDirection = Enum.FillDirection.Horizontal
+	lay.Padding = UDim.new(0, 4)
+	lay.Parent = row
+	for i = 1, maxLevel do
+		local pip = Instance.new("Frame")
+		pip.Size = UDim2.fromOffset(16, 8)
+		pip.BackgroundColor3 = if i <= level then Theme.UI.Accent else Theme.UI.PanelLight
+		pip.Parent = row
+		local pc = Instance.new("UICorner")
+		pc.CornerRadius = UDim.new(1, 0)
+		pc.Parent = pip
+	end
 end
 
 local function rebuild()
@@ -93,57 +159,84 @@ local function rebuild()
 		end
 	end
 	local state = OvenWarsClient.GetState()
-	for id, def in Constants.UPGRADE_DEFS do
+	-- Stable order
+	local order = { "OvenSpeed", "Storage", "Luck", "Security" }
+	for _, id in order do
+		local def = Constants.UPGRADE_DEFS[id]
+		if not def then
+			continue
+		end
 		local level = (state.upgrades and state.upgrades[id]) or 0
+		local icon = UPGRADE_ICONS[id] or "⭐"
+
 		local row = Instance.new("Frame")
-		row.Size = UDim2.new(1, -6, 0, 72)
-		row.BackgroundColor3 = Color3.fromRGB(60, 42, 28)
+		row.Size = UDim2.new(1, -4, 0, 88)
+		row.BackgroundColor3 = Theme.UI.PanelAlt
 		row.Parent = list
 		local rc = Instance.new("UICorner")
-		rc.CornerRadius = UDim.new(0, 8)
+		rc.CornerRadius = UDim.new(0, 12)
 		rc.Parent = row
+		local rs = Instance.new("UIStroke")
+		rs.Color = Theme.UI.Stroke
+		rs.Thickness = 1
+		rs.Transparency = 0.5
+		rs.Parent = row
 
 		local name = Instance.new("TextLabel")
-		name.Size = UDim2.new(1, -12, 0, 22)
-		name.Position = UDim2.fromOffset(8, 6)
+		name.Size = UDim2.new(1, -110, 0, 24)
+		name.Position = UDim2.fromOffset(12, 8)
 		name.BackgroundTransparency = 1
 		name.Font = Enum.Font.GothamBold
-		name.TextSize = 15
-		name.TextColor3 = Color3.new(1, 1, 1)
+		name.TextSize = 16
+		name.TextColor3 = Theme.UI.Text
 		name.TextXAlignment = Enum.TextXAlignment.Left
-		name.Text = def.displayName .. "  Lv " .. tostring(level) .. "/" .. tostring(Constants.UPGRADE_MAX_LEVEL)
+		name.Text = icon .. "  " .. def.displayName
 		name.Parent = row
 
+		local owned = Instance.new("TextLabel")
+		owned.Size = UDim2.new(1, -110, 0, 16)
+		owned.Position = UDim2.fromOffset(12, 32)
+		owned.BackgroundTransparency = 1
+		owned.Font = Enum.Font.Gotham
+		owned.TextSize = 12
+		owned.TextColor3 = Theme.UI.Cash
+		owned.TextXAlignment = Enum.TextXAlignment.Left
+		owned.Text = "Owned Lv " .. tostring(level) .. " / " .. tostring(Constants.UPGRADE_MAX_LEVEL)
+		owned.Parent = row
+
 		local desc = Instance.new("TextLabel")
-		desc.Size = UDim2.new(1, -100, 0, 18)
-		desc.Position = UDim2.fromOffset(8, 28)
+		desc.Size = UDim2.new(1, -110, 0, 16)
+		desc.Position = UDim2.fromOffset(12, 66)
 		desc.BackgroundTransparency = 1
 		desc.Font = Enum.Font.Gotham
 		desc.TextSize = 12
-		desc.TextColor3 = Color3.fromRGB(200, 190, 170)
+		desc.TextColor3 = Theme.UI.TextMuted
 		desc.TextXAlignment = Enum.TextXAlignment.Left
 		desc.Text = def.description
 		desc.Parent = row
 
+		levelPips(row, level, Constants.UPGRADE_MAX_LEVEL)
+
 		local buy = Instance.new("TextButton")
-		buy.Size = UDim2.fromOffset(88, 28)
-		buy.Position = UDim2.new(1, -96, 1, -34)
+		buy.Size = UDim2.fromOffset(96, 36)
+		buy.Position = UDim2.new(1, -108, 0.5, -18)
 		buy.Font = Enum.Font.GothamBold
-		buy.TextSize = 12
+		buy.TextSize = 14
 		buy.TextColor3 = Color3.new(1, 1, 1)
+		buy.AutoButtonColor = true
 		local bc = Instance.new("UICorner")
-		bc.CornerRadius = UDim.new(0, 6)
+		bc.CornerRadius = UDim.new(0, 8)
 		bc.Parent = buy
 		buy.Parent = row
 
 		if level >= Constants.UPGRADE_MAX_LEVEL then
-			buy.Text = "MAX"
-			buy.BackgroundColor3 = Color3.fromRGB(90, 90, 90)
+			buy.Text = "MAX ★"
+			buy.BackgroundColor3 = Color3.fromRGB(95, 90, 85)
 			buy.Active = false
 		else
 			local price = costFor(def, level)
-			buy.Text = "$" .. tostring(price)
-			buy.BackgroundColor3 = Color3.fromRGB(200, 140, 50)
+			buy.Text = "Buy $" .. tostring(price)
+			buy.BackgroundColor3 = Theme.UI.Accent
 			buy.MouseButton1Click:Connect(function()
 				OvenWarsClient.RequestUpgrade(id)
 				task.defer(rebuild)
@@ -166,8 +259,6 @@ OvenWarsClient.OnStateChanged(function()
 	end
 end)
 
--- Also allow keyboard U for quick open during playtest
-local UserInputService = game:GetService("UserInputService")
 UserInputService.InputBegan:Connect(function(input, processed)
 	if processed then
 		return

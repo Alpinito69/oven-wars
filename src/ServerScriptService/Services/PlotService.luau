@@ -1,6 +1,7 @@
 --!strict
 --[[
-	Oven Wars — hub + bakery plot placeholders; assign on join.
+	Oven Wars — plot assignment + display visuals.
+	World geometry lives in WorldBuilder (Hub / Plots / LightingHelpers).
 ]]
 
 local Players = game:GetService("Players")
@@ -8,7 +9,8 @@ local Players = game:GetService("Players")
 local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
 local Constants = require(game.ReplicatedStorage.Shared.Constants)
 local Catalog = require(game.ReplicatedStorage.Shared.Catalog)
-local InventoryService = require(script.Parent.InventoryService)
+local Theme = require(game.ReplicatedStorage.Shared.Theme)
+local WorldBuilder = require(script.Parent.WorldBuilder)
 
 local PlotService = {}
 
@@ -17,136 +19,12 @@ local plotModels: { Model } = {}
 local ownerToPlot: { [number]: number } = {} -- userId → plotIndex
 local plotOwner: { [number]: number? } = {} -- plotIndex → userId
 
-local function makePart(name: string, size: Vector3, cframe: CFrame, color: Color3, parent: Instance): Part
-	local p = Instance.new("Part")
-	p.Name = name
-	p.Size = size
-	p.CFrame = cframe
-	p.Anchored = true
-	p.Material = Enum.Material.SmoothPlastic
-	p.Color = color
-	p.TopSurface = Enum.SurfaceType.Smooth
-	p.BottomSurface = Enum.SurfaceType.Smooth
-	p.Parent = parent
-	return p
-end
-
-local function plotCFrame(index: number): CFrame
-	local angle = ((index - 1) / Constants.PLOT_COUNT) * math.pi * 2
-	local pos = Vector3.new(
-		math.cos(angle) * Constants.PLOT_RADIUS,
-		0,
-		math.sin(angle) * Constants.PLOT_RADIUS
-	)
-	return CFrame.new(pos) * CFrame.Angles(0, -angle + math.pi / 2, 0)
-end
-
-local function buildHub()
-	local hub = Instance.new("Model")
-	hub.Name = "Hub"
-	hub.Parent = plotsFolder
-
-	makePart("HubFloor", Vector3.new(30, 1, 30), CFrame.new(Constants.HUB_CENTER), Color3.fromRGB(240, 220, 180), hub)
-
-	local sign = makePart("HubSign", Vector3.new(12, 4, 1), CFrame.new(0, 3, -12), Color3.fromRGB(180, 90, 50), hub)
-	local billboard = Instance.new("BillboardGui")
-	billboard.Size = UDim2.fromOffset(200, 50)
-	billboard.StudsOffset = Vector3.new(0, 3, 0)
-	billboard.AlwaysOnTop = true
-	billboard.Parent = sign
-	local label = Instance.new("TextLabel")
-	label.Size = UDim2.fromScale(1, 1)
-	label.BackgroundTransparency = 1
-	label.Text = "OVEN WARS HUB"
-	label.TextScaled = true
-	label.Font = Enum.Font.GothamBold
-	label.TextColor3 = Color3.new(1, 1, 1)
-	label.Parent = billboard
-
-	-- World gather nodes (free common ingredients)
-	local nodes = {
-		{ name = "FlourSack", itemId = "Flour", offset = Vector3.new(8, 1.5, 4), color = Color3.fromRGB(230, 220, 190) },
-		{ name = "ButterCrate", itemId = "Butter", offset = Vector3.new(-8, 1.5, 4), color = Color3.fromRGB(255, 230, 120) },
-		{ name = "SugarBarrel", itemId = "SugarDust", offset = Vector3.new(0, 1.5, 10), color = Color3.fromRGB(255, 255, 255) },
-	}
-	for _, n in nodes do
-		local part = makePart(n.name, Vector3.new(3, 3, 3), CFrame.new(Constants.HUB_CENTER + n.offset), n.color, hub)
-		part:SetAttribute("GatherItemId", n.itemId)
-		part:SetAttribute("IsGatherNode", true)
-		local prompt = Instance.new("ProximityPrompt")
-		prompt.ObjectText = n.name
-		prompt.ActionText = "Gather"
-		prompt.HoldDuration = 0.4
-		prompt.MaxActivationDistance = 10
-		prompt.Parent = part
-	end
-end
-
-local function buildPlot(index: number): Model
-	local model = Instance.new("Model")
-	model.Name = "Plot_" .. tostring(index)
-	model:SetAttribute("PlotIndex", index)
-	model:SetAttribute("OwnerUserId", 0)
-	model:SetAttribute("DisplayItemId", "")
-	model.Parent = plotsFolder
-
-	local cf = plotCFrame(index)
-	local floor = makePart("Floor", Constants.PLOT_SIZE, cf, Color3.fromRGB(200, 170, 140), model)
-
-	local oven = makePart("Oven", Vector3.new(6, 5, 4), cf * CFrame.new(0, 3, -12), Color3.fromRGB(80, 80, 90), model)
-	oven:SetAttribute("IsOven", true)
-
-	local display = makePart("DisplayCase", Vector3.new(8, 4, 2), cf * CFrame.new(10, 2.5, 0), Color3.fromRGB(120, 200, 220), model)
-	display:SetAttribute("IsDisplayCase", true)
-	local stealPrompt = Instance.new("ProximityPrompt")
-	stealPrompt.Name = "StealPrompt"
-	stealPrompt.ObjectText = "Display Case"
-	stealPrompt.ActionText = "Steal"
-	stealPrompt.HoldDuration = 0.6
-	stealPrompt.MaxActivationDistance = Constants.STEAL_RANGE_STUDS
-	stealPrompt.RequiresLineOfSight = false
-	stealPrompt.Parent = display
-
-	local board = makePart("UpgradeBoard", Vector3.new(6, 5, 0.5), cf * CFrame.new(-12, 3, 0), Color3.fromRGB(90, 60, 40), model)
-	board:SetAttribute("IsUpgradeBoard", true)
-	local upgradePrompt = Instance.new("ProximityPrompt")
-	upgradePrompt.Name = "UpgradePrompt"
-	upgradePrompt.ObjectText = "Upgrade Board"
-	upgradePrompt.ActionText = "Open Shop"
-	upgradePrompt.HoldDuration = 0.2
-	upgradePrompt.MaxActivationDistance = 12
-	upgradePrompt.Parent = board
-
-	local spawn = makePart("Spawn", Vector3.new(4, 1, 4), cf * CFrame.new(0, 1, 8), Color3.fromRGB(100, 180, 100), model)
-	spawn.Transparency = 0.4
-	spawn.CanCollide = false
-
-	-- Plot label
-	local bb = Instance.new("BillboardGui")
-	bb.Name = "PlotLabel"
-	bb.Size = UDim2.fromOffset(180, 40)
-	bb.StudsOffset = Vector3.new(0, 6, 0)
-	bb.AlwaysOnTop = true
-	bb.Parent = floor
-	local text = Instance.new("TextLabel")
-	text.Name = "Label"
-	text.Size = UDim2.fromScale(1, 1)
-	text.BackgroundTransparency = 0.3
-	text.BackgroundColor3 = Color3.fromRGB(40, 30, 20)
-	text.Text = "Bakery #" .. tostring(index) .. " (Empty)"
-	text.TextColor3 = Color3.new(1, 1, 1)
-	text.TextScaled = true
-	text.Font = Enum.Font.Gotham
-	text.Parent = bb
-
-	return model
-end
-
 local function refreshPlotLabel(index: number)
 	local model = plotModels[index]
 	if not model then
 		return
 	end
+	local bakeryName = Theme.PlotName(index)
 	local floor = model:FindFirstChild("Floor")
 	local bb = floor and floor:FindFirstChild("PlotLabel")
 	local label = bb and bb:FindFirstChild("Label")
@@ -159,29 +37,56 @@ local function refreshPlotLabel(index: number)
 			local flex = ""
 			if typeof(displayId) == "string" and displayId ~= "" then
 				local item = Catalog.Get(displayId)
-				flex = " | " .. (if item then item.name else displayId)
+				flex = " · " .. (if item then item.name else displayId)
 			end
-			label.Text = name .. "'s Bakery" .. flex
+			label.Text = name .. "'s " .. bakeryName .. flex
 		else
-			label.Text = "Bakery #" .. tostring(index) .. " (Empty)"
+			label.Text = bakeryName .. "  ·  Empty"
+		end
+	end
+
+	-- Display case item label
+	local display = model:FindFirstChild("DisplayCase")
+	local dbb = display and display:FindFirstChild("DisplayItemBillboard")
+	local dlabel = dbb and dbb:FindFirstChild("ItemLabel")
+	if dlabel and dlabel:IsA("TextLabel") then
+		local displayId = model:GetAttribute("DisplayItemId")
+		if typeof(displayId) == "string" and displayId ~= "" then
+			local item = Catalog.Get(displayId)
+			dlabel.Text = "🧁 " .. (if item then item.name else displayId)
+			if item then
+				dlabel.TextColor3 = Catalog.GetRarityColor(item.rarity)
+			end
+		else
+			dlabel.Text = "Empty case"
+			dlabel.TextColor3 = Theme.Cream
 		end
 	end
 end
 
 function PlotService.Init()
-	local existing = workspace:FindFirstChild("OvenWarsPlots")
-	if existing then
-		existing:Destroy()
-	end
-	plotsFolder = Instance.new("Folder")
-	plotsFolder.Name = "OvenWarsPlots"
-	plotsFolder.Parent = workspace
+	WorldBuilder.ClearPrevious()
 
-	buildHub()
+	WorldBuilder.BuildHub()
+	plotsFolder = WorldBuilder.BuildPlots()
+
 	for i = 1, Constants.PLOT_COUNT do
-		plotModels[i] = buildPlot(i)
+		plotModels[i] = WorldBuilder.BuildPlot(i, plotsFolder)
 		plotOwner[i] = nil
 	end
+
+	local helpers = WorldBuilder.BuildLightingHelpers()
+	WorldBuilder.BuildPathwaysAndLamps(helpers, plotModels)
+
+	print("[OvenWars] PlotService: hub + " .. tostring(Constants.PLOT_COUNT) .. " bakery plots built")
+end
+
+function PlotService.GetPlotsFolder(): Folder
+	return plotsFolder
+end
+
+function PlotService.GetPlotModel(index: number): Model?
+	return plotModels[index]
 end
 
 function PlotService.Assign(player: Player): number?

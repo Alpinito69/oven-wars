@@ -16,8 +16,11 @@ local BakeService = require(script.Parent.Services.BakeService)
 local StealService = require(script.Parent.Services.StealService)
 local UpgradeService = require(script.Parent.Services.UpgradeService)
 local PlotService = require(script.Parent.Services.PlotService)
+local LightingService = require(script.Parent.Services.LightingService)
+local VFXService = require(script.Parent.Services.VFXService)
 
 Remotes.Init()
+LightingService.Init()
 PlotService.Init()
 
 local gatherCooldown: { [number]: number } = {}
@@ -39,7 +42,7 @@ local function onPlayerReady(player: Player)
 	local displayId = InventoryService.GetDisplay(player.UserId)
 	PlotService.UpdateDisplayVisual(player.UserId, displayId)
 
-	notify(player, "Welcome to Oven Wars! Gather flour at the hub, bake, sell, steal, upgrade.")
+	notify(player, "Welcome to Oven Wars! Gather at the market stalls, bake, sell, steal, upgrade.")
 end
 
 Players.PlayerAdded:Connect(function(player)
@@ -95,6 +98,7 @@ Remotes.Get("RequestSell").OnServerEvent:Connect(function(player: Player, itemId
 	end
 	local earned = item.sellPrice * qty
 	EconomyService.AddCash(player.UserId, earned)
+	VFXService.SellBurst(player.UserId)
 	notify(player, "Sold for $" .. tostring(earned))
 end)
 
@@ -159,7 +163,7 @@ Remotes.Get("RequestGather").OnServerEvent:Connect(function(player: Player, item
 	notify(player, "Gathered " .. item.name)
 end)
 
--- Wire ProximityPrompts on plots (steal / upgrade / gather)
+-- Wire ProximityPrompts on Hub stalls + plot boards / display cases
 local function hookPrompt(prompt: ProximityPrompt)
 	if prompt:GetAttribute("OvenWarsHooked") then
 		return
@@ -175,7 +179,6 @@ local function hookPrompt(prompt: ProximityPrompt)
 		if parent:GetAttribute("IsGatherNode") then
 			local itemId = parent:GetAttribute("GatherItemId")
 			if typeof(itemId) == "string" then
-				-- Direct gather (ProximityPrompt.Triggered runs on server)
 				local item = Catalog.Get(itemId)
 				if item and (item.rarity == "Common" or item.rarity == "Uncommon") then
 					local now = os.clock()
@@ -196,6 +199,7 @@ local function hookPrompt(prompt: ProximityPrompt)
 		end
 
 		if parent:GetAttribute("IsDisplayCase") then
+			-- Walk up to plot model (DisplayCase is directly under Plot_N)
 			local plot = parent.Parent
 			if plot then
 				local ownerId = plot:GetAttribute("OwnerUserId")
@@ -212,7 +216,6 @@ local function hookPrompt(prompt: ProximityPrompt)
 			local plot = parent.Parent
 			local ownerId = plot and plot:GetAttribute("OwnerUserId")
 			if ownerId == player.UserId then
-				-- Client listens for Notify + opens shop via local prompt; send shop open hint
 				Remotes.Get("Notify"):FireClient(player, "OPEN_UPGRADE_SHOP")
 			else
 				notify(player, "Not your upgrade board")
@@ -228,14 +231,16 @@ local function scanPrompts(root: Instance)
 			hookPrompt(d)
 		end
 	end
+	root.DescendantAdded:Connect(function(d)
+		if d:IsA("ProximityPrompt") then
+			hookPrompt(d)
+		end
+	end)
 end
 
-local plots = workspace:WaitForChild("OvenWarsPlots")
+local hub = workspace:WaitForChild("Hub")
+local plots = workspace:WaitForChild("Plots")
+scanPrompts(hub)
 scanPrompts(plots)
-plots.DescendantAdded:Connect(function(d)
-	if d:IsA("ProximityPrompt") then
-		hookPrompt(d)
-	end
-end)
 
 print("[OvenWars] Server bootstrap complete")

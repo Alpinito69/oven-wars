@@ -34,32 +34,63 @@ rojo build -o OvenWars.rbxlx
 
 ## Playtest loop (MVP click-through)
 
-1. **Join** — auto-assigned a bakery plot (hub at origin, plots in a ring)
-2. **Gather** — walk to hub Flour / Butter / Sugar nodes → ProximityPrompt
-3. **Bake** — HUD inventory → **Bake** on a recipe (needs ingredients)
-4. **Claim** — when oven timer finishes → **Claim Bake**
-5. **Sell** — **Sell** on a baked good for cash
-6. **Display** — **Display** a baked good on your case (steal bait / flex)
-7. **Steal** — walk to another player's **Display Case** → Steal prompt (~8s cooldown)
-8. **Upgrade** — your plot **Upgrade Board** (or press **U**) → spend cash on speed/storage/luck/security
+1. **Join** — auto-assigned a bakery plot (hub plaza, 8 distinct bakeries in a ring)
+2. **Gather** — walk to hub market stalls (Flour / Butter / Sugar) → ProximityPrompt
+3. **Bake** — HUD pantry → **Bake** on a recipe (needs ingredients); watch oven steam + glow
+4. **Claim** — when oven timer finishes → **Claim Bake** (sparkle VFX; bigger burst if Legendary)
+5. **Sell** — **Sell** on a baked good for cash (coin burst at counter)
+6. **Display** — **Show** a baked good on your glass case (steal bait / flex)
+7. **Steal** — walk to another player's **Display Case** → Steal prompt (~8s cooldown; poof VFX)
+8. **Upgrade** — your plot **Upgrade Board** (or press **U**) → card shop with owned levels
+
+## World & visuals
+
+Code spawns a readable **cozy bakery plaza** (no greybox-only map):
+
+| Folder | Contents |
+|--------|----------|
+| `Workspace.Hub` | Plaza floor, fountain/cake pedestal, 3 market stalls (awnings, crates, signs), benches, planters |
+| `Workspace.Plots` | 8 bakeries — floor, half-walls, roof, oven, glass case, counter, upgrade board, spawn, name signs, hedges; per-plot accent colors |
+| `Workspace.LightingHelpers` | Pathways, street lamps (`PointLight`), grass ring |
+
+- **Lighting** (`LightingService`): warm Ambient/OutdoorAmbient, golden-hour `ClockTime`, Bloom, warm ColorCorrection, Atmosphere haze, subtle DepthOfField
+- **VFX** (`VFXService`): bake steam, claim sparkles, sell coins, steal poof + highlight, legendary celebration — server-spawned for fairness
+- **UI**: warmer rounded panels, emoji glyphs, themed steal prompt, upgrade cards with level pips
+
+**Mesh / Toolbox assets** are imported in Studio; Luau provides layout + VFX skeleton. See `ASSETS.md` for naming contracts and a Studio-imports stub (parent merges research there). Do not commit unverified asset IDs.
+
+### How to see the polish in Studio
+
+1. `rojo serve` → Sync → Play
+2. Look around the hub fountain and stalls; follow a cobblestone path to your colored bakery
+3. Bake a recipe → oven window glows + steam; claim → sparkles
+4. Sell → yellow particle burst on counter; steal a rival display → smoke + red flash
+5. Press **U** for the card-style upgrade shop
 
 ## Project layout
 
 ```
 oven-wars/
-├── aftman.toml              # pins rojo
-├── default.project.json     # Rojo tree → Roblox services
-├── DESIGN.md                # GDD
+├── aftman.toml
+├── default.project.json
+├── DESIGN.md
+├── ASSETS.md                # Studio imports stub + naming contract
 ├── README.md
 └── src/
     ├── ReplicatedStorage/Shared/
-    │   ├── Catalog.luau     # items Common→Legendary
+    │   ├── Catalog.luau
     │   ├── Constants.luau
     │   ├── Remotes.luau
+    │   ├── Theme.luau       # bakery palette + plot accents
     │   └── Types.luau
     ├── ServerScriptService/
     │   ├── Main.server.luau
-    │   └── Services/        # Plot, Inventory, Bake, Steal, Economy, Upgrade, DataStore
+    │   └── Services/
+    │       ├── WorldBuilder.luau
+    │       ├── PlotService.luau
+    │       ├── LightingService.luau
+    │       ├── VFXService.luau
+    │       ├── Bake / Steal / Economy / Upgrade / Inventory / DataStore…
     └── StarterPlayer/StarterPlayerScripts/
         ├── ClientRemotes.client.luau
         ├── HUD.client.luau
@@ -70,7 +101,7 @@ oven-wars/
 ## Design notes
 
 - **Server-authoritative** cash, inventory, bake timers, steals, upgrades
-- Plots / hub / oven / display / upgrade board are **placeholder Parts** spawned by `PlotService`
+- World is **Parts composition** from `WorldBuilder` / `PlotService` (replaceable with Studio meshes)
 - DataStore is a **stub** with memory fallback for Studio offline
 - See `DESIGN.md` for economy, monetization, and MVP scope
 
@@ -80,7 +111,7 @@ oven-wars/
 - One active bake job per player
 - Hub gathers only Common/Uncommon ingredients
 - Steal validates distance to target display case; security upgrade can block
-- No GitHub push from this scaffold — wire remotes/CI separately
+- No GitHub push from visual polish work — parent handles remote push
 
 ## License / IP
 
