@@ -43,6 +43,7 @@ export type BakeJob = {
 }
 
 export type PlayerData = {
+	schemaVersion: number?,
 	cash: number,
 	inventory: { InventoryEntry },
 	upgrades: PlayerUpgrades,
@@ -55,5 +56,7 @@ export type PlotInfo = {
 	ownerUserId: number?,
 	cframe: CFrame,
 }
+
+export type GamePassKey = "FasterOvens" | "ExtraShelves" | "LuckyWhisk" | "IronLock"
 
 return {}

@@ -10,6 +10,7 @@ local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
 local Catalog = require(game.ReplicatedStorage.Shared.Catalog)
 
 local DataStoreStub = require(script.Parent.Services.DataStoreStub)
+local GamePassService = require(script.Parent.Services.GamePassService)
 local EconomyService = require(script.Parent.Services.EconomyService)
 local InventoryService = require(script.Parent.Services.InventoryService)
 local BakeService = require(script.Parent.Services.BakeService)
@@ -31,6 +32,7 @@ end
 
 local function onPlayerReady(player: Player)
 	DataStoreStub.Load(player.UserId)
+	GamePassService.RefreshOnJoin(player)
 	PlotService.Assign(player)
 
 	EconomyService.Sync(player)

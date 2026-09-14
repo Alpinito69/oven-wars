@@ -1,6 +1,7 @@
 --!strict
 --[[
 	Oven Wars — authoritative hub gather (node id + proximity + cooldown).
+	Luck + Lucky Whisk raise Uncommon weight on Common stalls (LiveOps formula).
 	ProximityPrompt and RequestGather both call TryGather.
 ]]
 
@@ -9,6 +10,7 @@ local Players = game:GetService("Players")
 local Constants = require(game.ReplicatedStorage.Shared.Constants)
 local Catalog = require(game.ReplicatedStorage.Shared.Catalog)
 local InventoryService = require(script.Parent.InventoryService)
+local UpgradeService = require(script.Parent.UpgradeService)
 
 local GatherService = {}
 
@@ -41,6 +43,20 @@ local function findGatherNode(nodeId: string): BasePart?
 	return nil
 end
 
+local function uncommonWeight(userId: number): number
+	local effectiveLuck = UpgradeService.GetEffectiveLuckLevel(userId)
+	local weight = Constants.HUB_GATHER_BASE_UNCOMMON_WEIGHT
+		+ effectiveLuck * Constants.HUB_GATHER_UNCOMMON_PER_LUCK_LEVEL
+	return math.clamp(weight, 0, Constants.HUB_GATHER_UNCOMMON_WEIGHT_CAP)
+end
+
+local function pickFromPool(pool: { string }): string?
+	if #pool == 0 then
+		return nil
+	end
+	return pool[math.random(1, #pool)]
+end
+
 function GatherService.TryGather(player: Player, nodeId: string): (boolean, string?)
 	if typeof(nodeId) ~= "string" or nodeId == "" then
 		return false, "Invalid gather node"
@@ -61,17 +77,17 @@ function GatherService.TryGather(player: Player, nodeId: string): (boolean, stri
 		return false, "Too far from stall"
 	end
 
-	local itemId = node:GetAttribute("GatherItemId")
-	if typeof(itemId) ~= "string" then
+	local nodeItemId = node:GetAttribute("GatherItemId")
+	if typeof(nodeItemId) ~= "string" then
 		return false, "Invalid gather node"
 	end
 
-	local item = Catalog.Get(itemId)
-	if not item or item.kind ~= "Ingredient" then
+	local nodeItem = Catalog.Get(nodeItemId)
+	if not nodeItem or nodeItem.kind ~= "Ingredient" then
 		return false, "Invalid ingredient"
 	end
 	-- Only allow Common/Uncommon hub gathers for MVP
-	if item.rarity ~= "Common" and item.rarity ~= "Uncommon" then
+	if nodeItem.rarity ~= "Common" and nodeItem.rarity ~= "Uncommon" then
 		return false, "Too rare to gather here"
 	end
 
@@ -81,12 +97,33 @@ function GatherService.TryGather(player: Player, nodeId: string): (boolean, stri
 		return false, "Gather cooldown"
 	end
 
-	if not InventoryService.AddItem(player.UserId, itemId, 1) then
+	local grantId = nodeItemId
+	-- Common nodes: roll Uncommon weight from luck; Uncommon/Rare+ nodes grant themselves
+	if nodeItem.rarity == "Common" then
+		local chance = uncommonWeight(player.UserId)
+		-- chance is Uncommon weight; Common is implicitly 1 - chance (re-normalized)
+		if math.random() < chance then
+			local pooled = pickFromPool(Constants.HUB_GATHER_UNCOMMON_POOL)
+			if pooled then
+				grantId = pooled
+			end
+		end
+	end
+
+	local grantItem = Catalog.Get(grantId)
+	if not grantItem or grantItem.kind ~= "Ingredient" then
+		return false, "Invalid ingredient"
+	end
+	if grantItem.rarity ~= "Common" and grantItem.rarity ~= "Uncommon" then
+		return false, "Too rare to gather here"
+	end
+
+	if not InventoryService.AddItem(player.UserId, grantId, 1) then
 		return false, "Inventory full"
 	end
 
 	gatherCooldown[player.UserId] = now
-	return true, "Gathered " .. item.name
+	return true, "Gathered " .. grantItem.name
 end
 
 Players.PlayerRemoving:Connect(function(player)

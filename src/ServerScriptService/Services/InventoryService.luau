@@ -7,12 +7,12 @@ local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
 local Constants = require(game.ReplicatedStorage.Shared.Constants)
 local Catalog = require(game.ReplicatedStorage.Shared.Catalog)
 local DataStoreStub = require(script.Parent.DataStoreStub)
+local UpgradeService = require(script.Parent.UpgradeService)
 
 local InventoryService = {}
 
 local function maxSlots(userId: number): number
-	local data = DataStoreStub.Get(userId)
-	local storageLvl = if data then data.upgrades.Storage else 0
+	local storageLvl = UpgradeService.GetEffectiveStorageLevel(userId)
 	return Constants.MAX_INVENTORY_SLOTS_BASE + storageLvl * Constants.STORAGE_SLOTS_PER_LEVEL
 end
 
@@ -71,6 +71,7 @@ function InventoryService.AddItem(userId: number, itemId: string, qty: number): 
 	else
 		table.insert(data.inventory, { itemId = itemId, qty = qty })
 	end
+	DataStoreStub.MarkDirty(userId)
 	local player = game.Players:GetPlayerByUserId(userId)
 	if player then
 		InventoryService.Sync(player)
@@ -97,6 +98,7 @@ function InventoryService.RemoveItem(userId: number, itemId: string, qty: number
 	if data.displayItemId == itemId and InventoryService.GetCount(userId, itemId) <= 0 then
 		data.displayItemId = nil
 	end
+	DataStoreStub.MarkDirty(userId)
 	local player = game.Players:GetPlayerByUserId(userId)
 	if player then
 		InventoryService.Sync(player)
@@ -119,6 +121,7 @@ function InventoryService.SetDisplay(userId: number, itemId: string?): boolean
 		end
 	end
 	data.displayItemId = itemId
+	DataStoreStub.MarkDirty(userId)
 	local player = game.Players:GetPlayerByUserId(userId)
 	if player then
 		InventoryService.Sync(player)

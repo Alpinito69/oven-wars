@@ -12,14 +12,14 @@ local Types = require(game.ReplicatedStorage.Shared.Types)
 local DataStoreStub = require(script.Parent.DataStoreStub)
 local InventoryService = require(script.Parent.InventoryService)
 local VFXService = require(script.Parent.VFXService)
+local UpgradeService = require(script.Parent.UpgradeService)
 
 local BakeService = {}
 
 local jobsByPlayer: { [number]: { Types.BakeJob } } = {}
 
 local function ovenMultiplier(userId: number): number
-	local data = DataStoreStub.Get(userId)
-	local lvl = if data then data.upgrades.OvenSpeed else 0
+	local lvl = UpgradeService.GetEffectiveOvenLevel(userId)
 	local mult = 1 - (lvl * Constants.OVEN_SPEED_REDUCTION_PER_LEVEL)
 	return math.max(0.5, mult)
 end

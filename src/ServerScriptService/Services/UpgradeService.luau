@@ -1,6 +1,7 @@
 --!strict
 --[[
 	Oven Wars — kitchen upgrades (speed / storage / luck / security).
+	Effective levels include gamepass bonuses (+1 per matching pass).
 ]]
 
 local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
@@ -8,6 +9,7 @@ local Constants = require(game.ReplicatedStorage.Shared.Constants)
 local Types = require(game.ReplicatedStorage.Shared.Types)
 local DataStoreStub = require(script.Parent.DataStoreStub)
 local EconomyService = require(script.Parent.EconomyService)
+local GamePassService = require(script.Parent.GamePassService)
 
 local UpgradeService = {}
 
@@ -21,6 +23,43 @@ function UpgradeService.GetLevel(userId: number, upgradeId: Types.UpgradeId): nu
 		return 0
 	end
 	return data.upgrades[upgradeId] or 0
+end
+
+function UpgradeService.GetEffectiveOvenLevel(userId: number): number
+	local lvl = UpgradeService.GetLevel(userId, "OvenSpeed")
+	if GamePassService.Has(userId, "FasterOvens") then
+		lvl += Constants.GAMEPASS_BONUS.FasterOvensOvenLevels
+	end
+	return lvl
+end
+
+function UpgradeService.GetEffectiveStorageLevel(userId: number): number
+	local lvl = UpgradeService.GetLevel(userId, "Storage")
+	if GamePassService.Has(userId, "ExtraShelves") then
+		lvl += Constants.GAMEPASS_BONUS.ExtraShelvesStorageLevels
+	end
+	return lvl
+end
+
+function UpgradeService.GetLuckLevel(userId: number): number
+	-- Cash Luck upgrade only (Lucky Whisk applied separately as +1 effective for gather)
+	return UpgradeService.GetLevel(userId, "Luck")
+end
+
+function UpgradeService.GetEffectiveLuckLevel(userId: number): number
+	local lvl = UpgradeService.GetLuckLevel(userId)
+	if GamePassService.Has(userId, "LuckyWhisk") then
+		lvl += Constants.GAMEPASS_BONUS.LuckyWhiskLuckLevels
+	end
+	return lvl
+end
+
+function UpgradeService.GetEffectiveSecurityLevel(userId: number): number
+	local lvl = UpgradeService.GetLevel(userId, "Security")
+	if GamePassService.Has(userId, "IronLock") then
+		lvl += Constants.GAMEPASS_BONUS.IronLockSecurityLevels
+	end
+	return lvl
 end
 
 function UpgradeService.Sync(player: Player)
@@ -53,13 +92,14 @@ function UpgradeService.TryUpgrade(player: Player, upgradeId: string): (boolean,
 	end
 
 	data.upgrades[typedId] = level + 1
+	DataStoreStub.MarkDirty(player.UserId)
 	UpgradeService.Sync(player)
 	Remotes.Get("Notify"):FireClient(player, def.displayName .. " → Lv " .. tostring(level + 1))
 	return true, nil
 end
 
 function UpgradeService.GetSecurityBlockChance(userId: number): number
-	local lvl = UpgradeService.GetLevel(userId, "Security")
+	local lvl = UpgradeService.GetEffectiveSecurityLevel(userId)
 	return math.clamp(lvl * Constants.SECURITY_BLOCK_CHANCE_PER_LEVEL, 0, 0.5)
 end
 
