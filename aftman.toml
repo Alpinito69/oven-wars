@@ -1,0 +1,6 @@
+# Aftman package manager — pin toolchain versions
+# https://github.com/LPGhatguy/aftman
+# Install: aftman install  (or use rojo from PATH)
+
+[tools]
+rojo = "7.4.4"

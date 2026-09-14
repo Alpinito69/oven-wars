@@ -1,0 +1,26 @@
+# Rojo / Roblox
+*.rbxl
+*.rbxlx
+*.rbxm
+*.rbxmx
+sourcemap.json
+
+# Aftman / tooling
+.aftman/
+*.lock
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*~
+
+# Env / secrets
+.env
+.env.*
+*.pem
+
+# Logs
+*.log
