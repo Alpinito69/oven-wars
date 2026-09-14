@@ -13,6 +13,10 @@ Constants.STEAL_RANGE_STUDS = 12
 Constants.STEAL_RATE_LIMIT_WINDOW_SEC = 2
 Constants.STEAL_RATE_LIMIT_MAX = 3
 
+Constants.GATHER_RANGE_STUDS = 12
+Constants.PLOT_INTERACT_RANGE_STUDS = 24
+Constants.GATHER_COOLDOWN_SEC = 2
+
 Constants.PLOT_COUNT = 8
 Constants.HUB_CENTER = Vector3.new(0, 0, 0)
 Constants.PLOT_RADIUS = 60

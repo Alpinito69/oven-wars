@@ -18,12 +18,12 @@ local UpgradeService = require(script.Parent.Services.UpgradeService)
 local PlotService = require(script.Parent.Services.PlotService)
 local LightingService = require(script.Parent.Services.LightingService)
 local VFXService = require(script.Parent.Services.VFXService)
+local GatherService = require(script.Parent.Services.GatherService)
+local ProximityGuard = require(script.Parent.Services.ProximityGuard)
 
 Remotes.Init()
 LightingService.Init()
 PlotService.Init()
-
-local gatherCooldown: { [number]: number } = {}
 
 local function notify(player: Player, msg: string)
 	Remotes.Get("Notify"):FireClient(player, msg)
@@ -63,6 +63,11 @@ Remotes.Get("RequestBake").OnServerEvent:Connect(function(player: Player, recipe
 	if typeof(recipeId) ~= "string" then
 		return
 	end
+	local nearOk, nearErr = ProximityGuard.requireNearOwnedPlotPart(player, "Oven")
+	if not nearOk then
+		notify(player, nearErr or "Too far from oven")
+		return
+	end
 	local ok, err = BakeService.StartBake(player, recipeId)
 	if not ok then
 		notify(player, err or "Bake failed")
@@ -73,6 +78,11 @@ Remotes.Get("RequestClaimBake").OnServerEvent:Connect(function(player: Player, j
 	if typeof(jobId) ~= "string" then
 		return
 	end
+	local nearOk, nearErr = ProximityGuard.requireNearOwnedPlotPart(player, "Oven")
+	if not nearOk then
+		notify(player, nearErr or "Too far from oven")
+		return
+	end
 	local ok, err = BakeService.ClaimBake(player, jobId)
 	if not ok then
 		notify(player, err or "Claim failed")
@@ -81,6 +91,11 @@ end)
 
 Remotes.Get("RequestSell").OnServerEvent:Connect(function(player: Player, itemId: unknown, qtyUnknown: unknown)
 	if typeof(itemId) ~= "string" then
+		return
+	end
+	local nearOk, nearErr = ProximityGuard.requireNearOwnedPlotPart(player, "Counter")
+	if not nearOk then
+		notify(player, nearErr or "Too far from counter")
 		return
 	end
 	local qty = if typeof(qtyUnknown) == "number" then math.floor(qtyUnknown) else 1
@@ -117,6 +132,11 @@ Remotes.Get("RequestUpgrade").OnServerEvent:Connect(function(player: Player, upg
 	if typeof(upgradeId) ~= "string" then
 		return
 	end
+	local nearOk, nearErr = ProximityGuard.requireNearOwnedPlotPart(player, "UpgradeBoard")
+	if not nearOk then
+		notify(player, nearErr or "Too far from upgrade board")
+		return
+	end
 	local ok, err = UpgradeService.TryUpgrade(player, upgradeId)
 	if not ok then
 		notify(player, err or "Upgrade failed")
@@ -124,6 +144,11 @@ Remotes.Get("RequestUpgrade").OnServerEvent:Connect(function(player: Player, upg
 end)
 
 Remotes.Get("RequestDisplay").OnServerEvent:Connect(function(player: Player, itemId: unknown)
+	local nearOk, nearErr = ProximityGuard.requireNearOwnedPlotPart(player, "DisplayCase")
+	if not nearOk then
+		notify(player, nearErr or "Too far from display case")
+		return
+	end
 	local id: string? = nil
 	if typeof(itemId) == "string" and itemId ~= "" then
 		id = itemId
@@ -136,31 +161,16 @@ Remotes.Get("RequestDisplay").OnServerEvent:Connect(function(player: Player, ite
 	end
 end)
 
-Remotes.Get("RequestGather").OnServerEvent:Connect(function(player: Player, itemId: unknown)
-	if typeof(itemId) ~= "string" then
+Remotes.Get("RequestGather").OnServerEvent:Connect(function(player: Player, nodeId: unknown)
+	if typeof(nodeId) ~= "string" then
 		return
 	end
-	local item = Catalog.Get(itemId)
-	if not item or item.kind ~= "Ingredient" then
-		return
+	local ok, msg = GatherService.TryGather(player, nodeId)
+	if not ok then
+		notify(player, msg or "Gather failed")
+	elseif msg then
+		notify(player, msg)
 	end
-	-- Only allow Common/Uncommon hub gathers for MVP
-	if item.rarity ~= "Common" and item.rarity ~= "Uncommon" then
-		notify(player, "Too rare to gather here")
-		return
-	end
-	local now = os.clock()
-	local last = gatherCooldown[player.UserId] or 0
-	if now - last < 2 then
-		notify(player, "Gather cooldown")
-		return
-	end
-	if not InventoryService.AddItem(player.UserId, itemId, 1) then
-		notify(player, "Inventory full")
-		return
-	end
-	gatherCooldown[player.UserId] = now
-	notify(player, "Gathered " .. item.name)
 end)
 
 -- Wire ProximityPrompts on Hub stalls + plot boards / display cases
@@ -177,23 +187,16 @@ local function hookPrompt(prompt: ProximityPrompt)
 		end
 
 		if parent:GetAttribute("IsGatherNode") then
-			local itemId = parent:GetAttribute("GatherItemId")
-			if typeof(itemId) == "string" then
-				local item = Catalog.Get(itemId)
-				if item and (item.rarity == "Common" or item.rarity == "Uncommon") then
-					local now = os.clock()
-					local last = gatherCooldown[player.UserId] or 0
-					if now - last < 2 then
-						notify(player, "Gather cooldown")
-						return
-					end
-					if InventoryService.AddItem(player.UserId, itemId, 1) then
-						gatherCooldown[player.UserId] = now
-						notify(player, "Gathered " .. item.name)
-					else
-						notify(player, "Inventory full")
-					end
+			local nodeId = parent:GetAttribute("GatherNodeId")
+			if typeof(nodeId) == "string" then
+				local ok, msg = GatherService.TryGather(player, nodeId)
+				if not ok then
+					notify(player, msg or "Gather failed")
+				elseif msg then
+					notify(player, msg)
 				end
+			else
+				notify(player, "Invalid gather node")
 			end
 			return
 		end

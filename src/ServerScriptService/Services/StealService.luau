@@ -2,6 +2,7 @@
 --[[
 	Oven Wars — proximity steal with cooldown + rate limit.
 	Server validates range; security upgrade can block.
+	Rate-limit timestamps are recorded only on successful steals.
 ]]
 
 local Players = game:GetService("Players")
@@ -20,7 +21,7 @@ local StealService = {}
 local lastStealAt: { [number]: number } = {}
 local rateWindow: { [number]: { number } } = {}
 
-local function withinRateLimit(userId: number): boolean
+local function pruneRateWindow(userId: number): { number }
 	local now = os.clock()
 	local window = rateWindow[userId] or {}
 	local kept = {}
@@ -29,13 +30,19 @@ local function withinRateLimit(userId: number): boolean
 			table.insert(kept, t)
 		end
 	end
-	if #kept >= Constants.STEAL_RATE_LIMIT_MAX then
-		rateWindow[userId] = kept
-		return false
-	end
-	table.insert(kept, now)
 	rateWindow[userId] = kept
-	return true
+	return kept
+end
+
+local function isRateLimited(userId: number): boolean
+	local kept = pruneRateWindow(userId)
+	return #kept >= Constants.STEAL_RATE_LIMIT_MAX
+end
+
+local function recordRateLimit(userId: number)
+	local kept = pruneRateWindow(userId)
+	table.insert(kept, os.clock())
+	rateWindow[userId] = kept
 end
 
 local function getCharacterRoot(player: Player): BasePart?
@@ -51,7 +58,7 @@ function StealService.TrySteal(thief: Player, targetUserId: number): (boolean, s
 		return false, "Can't steal from yourself"
 	end
 
-	if not withinRateLimit(thief.UserId) then
+	if isRateLimited(thief.UserId) then
 		return false, "Slow down"
 	end
 
@@ -125,6 +132,7 @@ function StealService.TrySteal(thief: Player, targetUserId: number): (boolean, s
 
 	InventoryService.AddItem(thief.UserId, displayId, 1)
 	lastStealAt[thief.UserId] = now
+	recordRateLimit(thief.UserId)
 
 	local itemName = Catalog.Get(displayId) and Catalog.Get(displayId).name or displayId
 	Remotes.Get("StealResult"):FireClient(thief, true, "Stole " .. itemName .. "!")
