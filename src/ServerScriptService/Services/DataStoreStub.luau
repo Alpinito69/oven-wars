@@ -4,6 +4,7 @@
 	DataStore when available; in-memory fallback for Studio / no-store.
 	Persists: cash, inventory, upgrades, displayItemId, ownedRecipes (+ schemaVersion).
 	Save on leave, BindToClose, and ~60s autosave. Retries Get/Set with backoff.
+	SetAsync is last-write-wins (no session versioning yet).
 ]]
 
 local DataStoreService = game:GetService("DataStoreService")
@@ -29,6 +30,9 @@ end
 
 local memoryCache: { [number]: Types.PlayerData } = {}
 local dirty: { [number]: boolean } = {}
+-- persistAllowed: GetAsync succeeded this session (table or genuine nil). False on
+-- GetAsync failure / no store — Save must never SetAsync (would wipe real progress).
+local persistAllowed: { [number]: boolean } = {}
 
 local DataStoreStub = {}
 
@@ -59,7 +63,9 @@ local function migrate(raw: any): Types.PlayerData
 
 	local data = raw :: { [string]: any }
 
-	if typeof(data.cash) ~= "number" then
+	if typeof(data.cash) == "number" then
+		data.cash = math.max(0, math.floor(data.cash))
+	else
 		data.cash = defaults.cash
 	end
 
@@ -128,17 +134,39 @@ function DataStoreStub.Load(userId: number): Types.PlayerData
 		local ok, data = withRetry("GetAsync", function()
 			return (store :: DataStore):GetAsync(keyFor(userId))
 		end)
-		if ok and typeof(data) == "table" then
-			local merged = migrate(data)
-			memoryCache[userId] = merged
-			dirty[userId] = false
-			return merged
+		if ok then
+			if typeof(data) == "table" then
+				local merged = migrate(data)
+				memoryCache[userId] = merged
+				persistAllowed[userId] = true
+				dirty[userId] = false
+				return merged
+			end
+			-- GetAsync succeeded with nil / non-table: genuine new player.
+			local fresh = defaultData()
+			memoryCache[userId] = fresh
+			persistAllowed[userId] = true
+			dirty[userId] = true
+			return fresh
 		end
+		-- GetAsync failed after retries: memory-only this session. Never SetAsync
+		-- (dirty=false + persistAllowed=false) so we cannot wipe real progress.
+		warn(string.format(
+			"[OvenWars] GetAsync FAILED after retries for userId %d — memory-only session; will NOT SetAsync (refusing to overwrite possibly-good DataStore data)",
+			userId
+		))
+		local sessionOnly = defaultData()
+		memoryCache[userId] = sessionOnly
+		persistAllowed[userId] = false
+		dirty[userId] = false
+		return sessionOnly
 	end
 
+	-- No store (Studio / API Services off): memory session; Save is a remote no-op.
 	local fresh = defaultData()
 	memoryCache[userId] = fresh
-	dirty[userId] = true -- new player should persist on first save window
+	persistAllowed[userId] = false
+	dirty[userId] = false
 	return fresh
 end
 
@@ -153,9 +181,18 @@ function DataStoreStub.Save(userId: number)
 	end
 	data.schemaVersion = Constants.DATASTORE_SCHEMA_VERSION
 	if not store then
+		-- memory-only; no remote persist
 		dirty[userId] = false
 		return
 	end
+	if persistAllowed[userId] ~= true then
+		-- GetAsync failed this session — never SetAsync (would wipe real progress).
+		return
+	end
+	if not dirty[userId] then
+		return
+	end
+	-- SetAsync is last-write-wins (no session versioning yet).
 	local ok = withRetry("SetAsync", function()
 		(store :: DataStore):SetAsync(keyFor(userId), data)
 		return true
@@ -169,6 +206,7 @@ function DataStoreStub.Unload(userId: number)
 	DataStoreStub.Save(userId)
 	memoryCache[userId] = nil
 	dirty[userId] = nil
+	persistAllowed[userId] = nil
 end
 
 Players.PlayerRemoving:Connect(function(player)
@@ -190,7 +228,7 @@ task.spawn(function()
 		task.wait(AUTOSAVE_SEC)
 		for _, player in Players:GetPlayers() do
 			local userId = player.UserId
-			if memoryCache[userId] then
+			if memoryCache[userId] and dirty[userId] and persistAllowed[userId] then
 				DataStoreStub.Save(userId)
 			end
 		end

@@ -62,10 +62,19 @@ function UpgradeService.GetEffectiveSecurityLevel(userId: number): number
 	return lvl
 end
 
+local function effectiveUpgradesFor(userId: number): { [string]: number }
+	return {
+		OvenSpeed = UpgradeService.GetEffectiveOvenLevel(userId),
+		Storage = UpgradeService.GetEffectiveStorageLevel(userId),
+		Luck = UpgradeService.GetEffectiveLuckLevel(userId),
+		Security = UpgradeService.GetEffectiveSecurityLevel(userId),
+	}
+end
+
 function UpgradeService.Sync(player: Player)
 	local data = DataStoreStub.Get(player.UserId)
 	if data then
-		Remotes.Get("UpgradeUpdated"):FireClient(player, data.upgrades)
+		Remotes.Get("UpgradeUpdated"):FireClient(player, data.upgrades, effectiveUpgradesFor(player.UserId))
 	end
 end
 
@@ -105,6 +114,7 @@ end
 
 function UpgradeService.GetShopPayload(userId: number)
 	local payload = {}
+	local effectiveMap = effectiveUpgradesFor(userId)
 	for id, def in Constants.UPGRADE_DEFS do
 		local level = UpgradeService.GetLevel(userId, id :: Types.UpgradeId)
 		table.insert(payload, {
@@ -112,6 +122,7 @@ function UpgradeService.GetShopPayload(userId: number)
 			displayName = def.displayName,
 			description = def.description,
 			level = level,
+			effectiveLevel = effectiveMap[id] or level,
 			maxLevel = Constants.UPGRADE_MAX_LEVEL,
 			nextCost = if level < Constants.UPGRADE_MAX_LEVEL then costFor(def, level) else nil,
 		})

@@ -18,6 +18,7 @@ export type ClientState = {
 	displayItemId: string?,
 	bakeQueue: { any },
 	upgrades: { [string]: number },
+	effectiveUpgrades: { [string]: number },
 	plotIndex: number?,
 }
 
@@ -27,6 +28,7 @@ local state: ClientState = {
 	displayItemId = nil,
 	bakeQueue = {},
 	upgrades = {},
+	effectiveUpgrades = {},
 	plotIndex = nil,
 }
 
@@ -99,8 +101,9 @@ Remotes.Get("BakeQueueUpdated").OnClientEvent:Connect(function(queue)
 	notifyState()
 end)
 
-Remotes.Get("UpgradeUpdated").OnClientEvent:Connect(function(upgrades)
+Remotes.Get("UpgradeUpdated").OnClientEvent:Connect(function(upgrades, effectiveUpgrades)
 	state.upgrades = upgrades or {}
+	state.effectiveUpgrades = effectiveUpgrades or {}
 	notifyState()
 end)
 

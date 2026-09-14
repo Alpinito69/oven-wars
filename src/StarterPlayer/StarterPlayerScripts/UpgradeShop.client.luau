@@ -167,6 +167,7 @@ local function rebuild()
 			continue
 		end
 		local level = (state.upgrades and state.upgrades[id]) or 0
+		local effective = (state.effectiveUpgrades and state.effectiveUpgrades[id]) or level
 		local icon = UPGRADE_ICONS[id] or "⭐"
 
 		local row = Instance.new("Frame")
@@ -201,7 +202,11 @@ local function rebuild()
 		owned.TextSize = 12
 		owned.TextColor3 = Theme.UI.Cash
 		owned.TextXAlignment = Enum.TextXAlignment.Left
-		owned.Text = "Owned Lv " .. tostring(level) .. " / " .. tostring(Constants.UPGRADE_MAX_LEVEL)
+		local ownedLine = "Owned Lv " .. tostring(level) .. " / " .. tostring(Constants.UPGRADE_MAX_LEVEL)
+		if effective > level then
+			ownedLine ..= " · eff " .. tostring(effective) .. " (+pass)"
+		end
+		owned.Text = ownedLine
 		owned.Parent = row
 
 		local desc = Instance.new("TextLabel")

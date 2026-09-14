@@ -107,6 +107,7 @@ Player data (`cash`, `inventory`, `upgrades`, `displayItemId`, `ownedRecipes`) s
 - Save on leave (`PlayerRemoving`) and `BindToClose`
 - Autosave ~every 60s for online players
 - GetAsync / SetAsync retry with exponential backoff
+- SetAsync is last-write-wins (no session versioning yet). If GetAsync fails after retries, the session is memory-only and will **not** SetAsync (avoids wiping real progress).
 
 **Studio:** Game Settings → Security → **Enable Studio Access to API Services** for live DataStore. With API Services off (or GetDataStore failure), an in-memory fallback still lets you playtest.
 
