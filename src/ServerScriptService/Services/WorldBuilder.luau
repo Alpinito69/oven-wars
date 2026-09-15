@@ -91,7 +91,9 @@ local function plotCFrame(index: number): CFrame
 		0,
 		math.sin(angle) * Constants.PLOT_RADIUS
 	)
-	return CFrame.new(pos) * CFrame.Angles(0, -angle + math.pi / 2, 0)
+	-- Bakery front is local +Z (spawn / name sign); face +Z toward hub so fronts greet the plaza.
+	-- LookVector (-Z) points outward. Was `-angle + pi/2` which put backs to the plaza.
+	return CFrame.new(pos) * CFrame.Angles(0, -angle - math.pi / 2, 0)
 end
 
 local function buildStall(
@@ -169,7 +171,7 @@ local function buildFountain(hub: Model)
 		Material = Enum.Material.Concrete,
 	})
 	part("Pedestal", Vector3.new(2.4, 3.5, 2.4), CFrame.new(0, 3.1, 0), Theme.Terracotta, hub, {
-		Material = Enum.Material.Ceramic,
+		Material = Enum.Material.Marble,
 	})
 	local cake = part("DisplayCake", Vector3.new(3.2, 1.4, 3.2), CFrame.new(0, 5.4, 0), Theme.SoftPink, hub, {
 		Material = Enum.Material.SmoothPlastic,
@@ -206,37 +208,40 @@ function WorldBuilder.BuildHub(): Folder
 	hub.Name = "Plaza"
 	hub.Parent = hubFolder
 
-	-- Plaza floor (layered for coziness)
-	part("PlazaFloor", Vector3.new(36, 1, 36), CFrame.new(Constants.HUB_CENTER), Theme.CreamDark, hub, {
+	-- Plaza floor (layered for coziness); sized up with PLOT_RADIUS 90 ring
+	part("PlazaFloor", Vector3.new(48, 1, 48), CFrame.new(Constants.HUB_CENTER), Theme.CreamDark, hub, {
 		Material = Enum.Material.Concrete,
 	})
-	part("PlazaInlay", Vector3.new(22, 0.2, 22), CFrame.new(0, 0.6, 0), Theme.Cream, hub, {
+	part("PlazaInlay", Vector3.new(30, 0.2, 30), CFrame.new(0, 0.6, 0), Theme.Cream, hub, {
 		Material = Enum.Material.SmoothPlastic,
 	})
-	part("PlazaRing", Vector3.new(28, 0.15, 28), CFrame.new(0, 0.55, 0), Theme.Terracotta, hub, {
+	part("PlazaRing", Vector3.new(38, 0.15, 38), CFrame.new(0, 0.55, 0), Theme.Terracotta, hub, {
 		Material = Enum.Material.Brick,
 	})
 
 	buildFountain(hub)
 
 	-- Welcome arch / sign
-	part("ArchL", Vector3.new(1, 8, 1), CFrame.new(-7, 4.5, -16), Theme.Wood, hub, {
+	part("ArchL", Vector3.new(1, 8, 1), CFrame.new(-7, 4.5, -22), Theme.Wood, hub, {
 		Material = Enum.Material.Wood,
 	})
-	part("ArchR", Vector3.new(1, 8, 1), CFrame.new(7, 4.5, -16), Theme.Wood, hub, {
+	part("ArchR", Vector3.new(1, 8, 1), CFrame.new(7, 4.5, -22), Theme.Wood, hub, {
 		Material = Enum.Material.Wood,
 	})
-	local archTop = part("ArchTop", Vector3.new(15, 1.5, 1.2), CFrame.new(0, 8.5, -16), Theme.TerracottaDeep, hub, {
+	local archTop = part("ArchTop", Vector3.new(15, 1.5, 1.2), CFrame.new(0, 8.5, -22), Theme.TerracottaDeep, hub, {
 		Material = Enum.Material.Wood,
 	})
 	surfaceLabel(archTop, Enum.NormalId.Front, "OVEN WARS  •  MARKET HUB", Theme.Cream)
 	surfaceLabel(archTop, Enum.NormalId.Back, "OVEN WARS  •  MARKET HUB", Theme.Cream)
 
-	-- Market stalls (gather nodes)
+	-- Market stalls (gather nodes) — LookVector toward hub so awnings/signs greet the plaza
+	local function stallAt(pos: Vector3): CFrame
+		return CFrame.lookAt(pos, Constants.HUB_CENTER)
+	end
 	buildStall(
 		hub,
 		"FlourStall",
-		CFrame.new(10, 0, 6) * CFrame.Angles(0, math.rad(-35), 0),
+		stallAt(Vector3.new(14, 0, 8)),
 		Theme.SoftPink,
 		"Flour Market",
 		"Flour",
@@ -245,7 +250,7 @@ function WorldBuilder.BuildHub(): Folder
 	buildStall(
 		hub,
 		"ButterStall",
-		CFrame.new(-10, 0, 6) * CFrame.Angles(0, math.rad(35), 0),
+		stallAt(Vector3.new(-14, 0, 8)),
 		Theme.Butter,
 		"Butter Stall",
 		"Butter",
@@ -254,7 +259,7 @@ function WorldBuilder.BuildHub(): Folder
 	buildStall(
 		hub,
 		"SugarStall",
-		CFrame.new(0, 0, 12) * CFrame.Angles(0, math.rad(180), 0),
+		stallAt(Vector3.new(0, 0, 16)),
 		Theme.Mint,
 		"Sugar Stand",
 		"SugarDust",
@@ -262,24 +267,24 @@ function WorldBuilder.BuildHub(): Folder
 	)
 
 	-- Benches
-	for _, ox in { -12, 12 } do
-		part("BenchSeat", Vector3.new(5, 0.4, 1.4), CFrame.new(ox, 1.2, -8), Theme.WoodLight, hub, {
+	for _, ox in { -16, 16 } do
+		part("BenchSeat", Vector3.new(5, 0.4, 1.4), CFrame.new(ox, 1.2, -10), Theme.WoodLight, hub, {
 			Material = Enum.Material.Wood,
 		})
-		part("BenchBack", Vector3.new(5, 1.4, 0.3), CFrame.new(ox, 2, -8.6), Theme.Wood, hub, {
+		part("BenchBack", Vector3.new(5, 1.4, 0.3), CFrame.new(ox, 2, -10.6), Theme.Wood, hub, {
 			Material = Enum.Material.Wood,
 		})
 	end
 
 	-- Planters
 	for _, offset in {
-		Vector3.new(14, 0.8, -10),
-		Vector3.new(-14, 0.8, -10),
-		Vector3.new(14, 0.8, 14),
-		Vector3.new(-14, 0.8, 14),
+		Vector3.new(18, 0.8, -14),
+		Vector3.new(-18, 0.8, -14),
+		Vector3.new(18, 0.8, 18),
+		Vector3.new(-18, 0.8, 18),
 	} do
 		part("Planter", Vector3.new(2.2, 1.2, 2.2), CFrame.new(offset), Theme.Terracotta, hub, {
-			Material = Enum.Material.Ceramic,
+			Material = Enum.Material.Marble,
 		})
 		part("Bush", Vector3.new(2, 1.6, 2), CFrame.new(offset + Vector3.new(0, 1.4, 0)), Theme.Hedge, hub, {
 			Material = Enum.Material.Grass,
@@ -568,7 +573,8 @@ end
 
 function WorldBuilder.BuildPathwaysAndLamps(helpers: Folder, plotModels: { Model })
 	-- Ground ring / grass apron
-	part("GrassRing", Vector3.new(160, 0.8, 160), CFrame.new(0, -0.9, 0), Theme.Grass, helpers, {
+	-- Covers plot ring outer edge (R + half plot ≈ 114) with margin
+	part("GrassRing", Vector3.new(240, 0.8, 240), CFrame.new(0, -0.9, 0), Theme.Grass, helpers, {
 		Material = Enum.Material.Grass,
 	})
 
@@ -582,9 +588,11 @@ function WorldBuilder.BuildPathwaysAndLamps(helpers: Folder, plotModels: { Model
 		local dist = dir.Magnitude
 		local angle = math.atan2(-dir.X, -dir.Z)
 
+		-- Inset so path ends near plaza rim + plot entrance (not under floors)
+		local pathLen = math.max(12, dist - Constants.PLOT_SIZE.Z * 0.5 - 24)
 		part(
 			"Path_" .. tostring(i),
-			Vector3.new(5, 0.25, dist - 18),
+			Vector3.new(5, 0.25, pathLen),
 			CFrame.new(mid.X, 0.2, mid.Z) * CFrame.Angles(0, angle, 0),
 			Theme.Path,
 			helpers,
@@ -635,10 +643,10 @@ function WorldBuilder.BuildPathwaysAndLamps(helpers: Folder, plotModels: { Model
 
 	-- Hub corner lamps
 	for _, pos in {
-		Vector3.new(16, 0, 16),
-		Vector3.new(-16, 0, 16),
-		Vector3.new(16, 0, -16),
-		Vector3.new(-16, 0, -16),
+		Vector3.new(22, 0, 22),
+		Vector3.new(-22, 0, 22),
+		Vector3.new(22, 0, -22),
+		Vector3.new(-22, 0, -22),
 	} do
 		part("HubLampPole", Vector3.new(0.4, 6, 0.4), CFrame.new(pos + Vector3.new(0, 3, 0)), Theme.WoodDark, helpers, {
 			Material = Enum.Material.Metal,

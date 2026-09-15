@@ -19,8 +19,9 @@ Constants.GATHER_COOLDOWN_SEC = 2
 
 Constants.PLOT_COUNT = 8
 Constants.HUB_CENTER = Vector3.new(0, 0, 0)
-Constants.PLOT_RADIUS = 60
-Constants.PLOT_SIZE = Vector3.new(40, 1, 40)
+-- Ring spacing: was R=60/size=40 (~7 stud edge gaps — cramped). R=90/size=48 ≈23 stud gaps + longer paths.
+Constants.PLOT_RADIUS = 90
+Constants.PLOT_SIZE = Vector3.new(48, 1, 48)
 
 -- Bake tier base times (seconds); UpgradeService multiplies by oven speed
 Constants.BAKE_TIME = {
