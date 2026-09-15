@@ -521,7 +521,7 @@ function WorldBuilder.BuildPlot(index: number, plotsFolder: Folder): Model
 	bb.Size = UDim2.fromOffset(200, 42)
 	bb.StudsOffset = Vector3.new(0, 9, 0)
 	bb.AlwaysOnTop = false
-	bb.MaxDistance = 90
+	bb.MaxDistance = 200
 	bb.Parent = floor
 	local text = Instance.new("TextLabel")
 	text.Name = "Label"
@@ -588,8 +588,9 @@ function WorldBuilder.BuildPathwaysAndLamps(helpers: Folder, plotModels: { Model
 		local dist = dir.Magnitude
 		local angle = math.atan2(-dir.X, -dir.Z)
 
-		-- Inset so path ends near plaza rim + plot entrance (not under floors)
-		local pathLen = math.max(12, dist - Constants.PLOT_SIZE.Z * 0.5 - 24)
+		-- Mid-centered path: length dist-2*ENTRANCE so ends meet fence/name at local Z=+18 (hub-facing), not under bakery floor
+		local ENTRANCE_LOCAL_Z = 18 -- matches FencePost / FenceRail Z in buildPlot
+		local pathLen = math.max(12, dist - 2 * ENTRANCE_LOCAL_Z)
 		part(
 			"Path_" .. tostring(i),
 			Vector3.new(5, 0.25, pathLen),
